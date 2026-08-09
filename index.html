@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#f7efe4"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Fındık">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/styles.css"><title>Fındık Universe</title>
+</head>
+<body>
+<div class="app">
+<header class="top"><div><span class="kicker">FINDIK UNIVERSE</span><h1 id="greeting">Günaydın!</h1><p id="subGreeting">Fındık seni bekliyordu.</p></div><button class="level" id="levelButton"><small>SEVİYE</small><b id="level">1</b></button></header>
+<section class="world card" id="home">
+<div class="sky"><span class="cloud c1">☁️</span><span class="cloud c2">☁️</span><span class="sun" id="sun">☀️</span></div>
+<div class="place tram">🚋<small>Tramvay</small></div><div class="place cafe">☕<small>Kafe</small></div><div class="place park">🌳<small>Park</small></div>
+<button class="findik" id="findik" aria-label="Fındık'a dokun"><span class="leaf">🌿</span><span class="dog">🐶</span><span class="overall">▰</span></button>
+<div class="speech" id="speech">Sonunda geldin! Bugün nereye gidiyoruz?</div>
+<div class="ground"><span>🌼</span><span>🌱</span><span>🌷</span><span>🌱</span></div>
+</section>
+<div class="progress card"><div><b id="xpText">0 / 100 XP</b><small>Bir sonraki seviyeye</small></div><div class="bar"><i id="xpBar"></i></div></div>
+<section id="adventures"><div class="sectionTitle"><div><span class="kicker">BUGÜN</span><h2>Maceraya çık</h2></div><span id="completedCount">0/5 tamamlandı</span></div><div class="adventureRail" id="adventureRail"></div></section>
+<section id="album"><div class="sectionTitle"><div><span class="kicker">HATIRALAR</span><h2>Fındık'ın Albümü</h2></div></div><div class="album" id="albumGrid"><div class="empty">İlk maceranı tamamladığında hatıran burada yaşayacak. 📸</div></div></section>
+<section id="vault"><div class="sectionTitle"><div><span class="kicker">KOLEKSİYON</span><h2>Sticker Kasası</h2></div><span id="stickerCount">0/5 açık</span></div><div class="stickers" id="stickerGrid"></div></section>
+<section id="achievements"><div class="sectionTitle"><div><span class="kicker">BAŞARILAR</span><h2>Minik madalyalar</h2></div></div><div class="achievements" id="achievementGrid"></div></section>
+</div>
+<nav class="dock"><a href="#home">🐾<small>Ev</small></a><a href="#adventures">🗺️<small>Macera</small></a><a href="#album">📸<small>Albüm</small></a><a href="#vault">✨<small>Sticker</small></a></nav>
+<dialog id="adventureModal"><div class="modal"><button class="x" id="closeModal">×</button><div class="sceneIcon" id="modalIcon"></div><span class="kicker" id="modalPlace"></span><h2 id="modalTitle"></h2><p id="modalStory"></p><div class="reward" id="modalReward"></div><button class="primary" id="completeAdventure">Macera tamamlandı ✨</button></div></dialog>
+<dialog id="levelModal"><div class="modal"><button class="x" onclick="levelModal.close()">×</button><div class="sceneIcon">🏅</div><span class="kicker">FINDIK & SEN</span><h2 id="levelTitle">Seviye 1</h2><p id="levelCopy"></p><button class="primary" onclick="levelModal.close()">Maceralara dön</button></div></dialog>
+<script src="/app.js"></script>
+</body></html>
