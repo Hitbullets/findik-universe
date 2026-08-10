@@ -1,38 +1,63 @@
-# Roadmap
+# Roadmap — Fındık Universe
 
-## V1 — A Tiny Living World
-- Mobile-first world/home screen
-- Time-aware greeting
-- Touch reaction
-- Five authored adventures
-- XP and level progression
-- Memory album
-- Achievements
-- Sticker Vault
-- Local persistence
-- Installable/offline PWA
-- Vercel deployment
+## Delivery principle
 
-## V1.5 — Character Polish
-- Replace temporary illustrated character with canonical production asset set
-- Idle/blink/boop animations
-- Adventure-specific scene art
-- Haptics and optional sound
-- Shareable memory cards
+The order is intentional: make one visit magical before making the world large. Authored character quality and iPhone reliability come before maps, accounts or AI.
 
-## V2 — Fındık's World
-- Interactive map with unlockable locations
-- Wardrobe and collectible accessories
-- Seasonal/day-night scene variants
-- More authored adventures
-- Expanded achievement collection
+## Milestone 1 — First Real Visit
 
-## V3 — Adventure Studio
-- User prompt: “Fındık bugün ne yapsın?”
-- Constrained AI story generation
-- Character-consistent generated scene pipeline
-- Generated adventure stored as a memory
-- Safety and Character Bible validation before publishing
+**Goal:** Fındık Universe can be installed on an iPhone and the Tramvay Macerası feels like a real tiny adventure.
 
-## Definition of Done for V1
-A user can install the app on iPhone, open it full-screen, meet a time-aware Fındık, complete each of five adventures, see persistent XP/progress, unlock achievements/stickers and revisit collected memories after closing and reopening the app.
+- Vercel deployment and physical iPhone PWA verification
+- PWA/Apple icons and controlled offline updates
+- Canonical production Fındık asset set
+- Idle, blink and tap reaction
+- One authored Tramvay scene and 30–90 second interaction
+- Memory card, XP, sticker and replay state
+- Responsive, accessible and reduced-motion checks
+
+Exit: the intended owner can install it, play it, close it and return to the earned memory.
+
+## Milestone 2 — Five Authored Adventures
+
+- Bicycle, Café, Park and Night adventures elevated to the same interactive standard
+- Shared adventure engine and data schema
+- Five scene illustrations with cohesive art direction
+- Album and achievements polished around actual play
+- Shareable memory-card prototype
+
+Exit: every original place is an authored playable moment, not a modal with a completion button.
+
+## Milestone 3 — Fındık’s World
+
+- Interactive location map
+- Unlockable places and gentle progression
+- Day/night and seasonal scene variants
+- Passport stamps, secret moments and collection room
+- Wardrobe with earned accessories
+
+Exit: the app feels like a small place to visit rather than a sequence of sections.
+
+## Milestone 4 — Care and Continuity
+
+- Optional backup/export and restore
+- Explicit sharing flows and privacy controls
+- Content release process
+- Usage signals that respect the personal-first boundary
+- Stability, performance and accessibility hardening
+
+Exit: memories can survive a device change without forcing an account or collecting unnecessary data.
+
+## Milestone 5 — Adventure Studio
+
+- Prompt-to-draft adventure workflow
+- Character Bible and Rules validation
+- Template-based scenes before open-ended visual generation
+- Explicit approval before saving a generated adventure
+- Quality review and rollback for generated content
+
+Exit: Fındık can host new adventures without drifting away from its canon.
+
+## Deferred by design
+
+No monetisation, ads, social feed, public profiles, daily streak mechanics or unrestricted visual AI generation are planned before the authored core succeeds.
