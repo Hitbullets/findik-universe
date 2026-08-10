@@ -1,40 +1,44 @@
-import type { Adventure, Progress } from "./types";
-import { normalizeProgress } from "./progress-schema";
+import { createBlankProgressV3 } from "./progress-reducer";
+import { normalizeProgress, progressVersion } from "./progress-schema";
 import type { ProgressV3 } from "./types";
 
-const key = "findik-universe-progress-v2";
-export const blankProgress: Progress = { version: 2, xp: 0, completed: [], boops: 0, memories: [], wardrobe: [] };
+export const PROGRESS_STORAGE_KEY = "findik-universe-progress-v2";
 
-export function loadProgress(): Progress {
-  if (typeof window === "undefined") return blankProgress;
-  try {
-    const value = JSON.parse(window.localStorage.getItem(key) || "null");
-    if (value?.version === 2) return { ...blankProgress, ...value };
-    if (value?.version === 3) {
-      const completed = Object.values(value.completions || {}).map((record: any) => record.content?.id).filter((id: string): id is Progress["completed"][number] => ["tram", "bike", "cafe", "park", "night"].includes(id));
-      return { ...blankProgress, xp: value.xp || 0, boops: value.boops || 0, completed, memories: (value.memories || []).filter((memory: any) => ["tram", "bike", "cafe", "park", "night"].includes(memory.id)), wardrobe: value.wardrobe?.unlocked || [] };
-    }
-    return blankProgress;
-  } catch { return blankProgress; }
-}
+type ProgressStorage = Pick<Storage, "getItem" | "setItem">;
 
+export type PersistenceResult = { ok: true } | { ok: false; error: unknown };
+
+/** A deterministic server snapshot. Browser state must be loaded in an effect. */
 export function loadProgressV3(): ProgressV3 {
-  if (typeof window === "undefined") return normalizeProgress(null);
-  try { return normalizeProgress(JSON.parse(window.localStorage.getItem(key) || "null")); } catch { return normalizeProgress(null); }
+  return createBlankProgressV3();
 }
 
-export function persistProgressV3(progress: ProgressV3) { window.localStorage.setItem(key, JSON.stringify(progress)); }
-
-export function persistProgress(progress: Progress) { window.localStorage.setItem(key, JSON.stringify(progress)); }
-
-export function completeAdventure(progress: Progress, adventure: Adventure): Progress {
-  if (progress.completed.includes(adventure.id)) return progress;
-  return {
-    ...progress,
-    xp: progress.xp + adventure.reward.xp,
-    completed: [...progress.completed, adventure.id],
-    memories: [{ id: adventure.id, completedAt: new Date().toISOString(), caption: adventure.reward.memory }, ...progress.memories],
-  };
+/** Reads browser state and rewrites a legacy v2 snapshot as canonical v3 once. */
+export function loadProgressFromStorage(storage: ProgressStorage = window.localStorage): ProgressV3 {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(storage.getItem(PROGRESS_STORAGE_KEY) ?? "null");
+  } catch {
+    return createBlankProgressV3();
+  }
+  const progress = normalizeProgress(raw);
+  if (progressVersion(raw) === 2) persistProgressV3(progress, storage);
+  return progress;
 }
 
-export const levelFor = (xp: number) => Math.floor(xp / 100) + 1;
+/** Persists exactly one validated canonical snapshot with a single atomic setItem. */
+export function persistProgressV3(progress: ProgressV3, storage: ProgressStorage = window.localStorage): PersistenceResult {
+  try {
+    storage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(normalizeProgress(progress)));
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+export function resetProgressV3(storage: ProgressStorage = window.localStorage): { progress: ProgressV3; result: PersistenceResult } {
+  const progress = createBlankProgressV3();
+  return { progress, result: persistProgressV3(progress, storage) };
+}
+
+export const levelFor = (xp: number) => Math.floor(Math.max(0, xp) / 100) + 1;

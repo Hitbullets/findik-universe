@@ -15,5 +15,13 @@ export function applyCompletion(progress: ProgressV3, input: CompletionInput): P
   if (input.reward.passportStampId && !next.passport.stamps.includes(input.reward.passportStampId)) next.passport = { ...next.passport, stamps: [...next.passport.stamps, input.reward.passportStampId] };
   return next;
 }
-export type ProgressEvent = { type: "CONTENT_COMPLETED"; input: CompletionInput } | { type: "CHARACTER_BOOPED" };
-export function reduceProgress(progress: ProgressV3, event: ProgressEvent) { return event.type === "CONTENT_COMPLETED" ? applyCompletion(progress, event.input) : { ...progress, boops: progress.boops + 1 }; }
+export type ProgressEvent =
+  | { type: "CONTENT_COMPLETED"; input: CompletionInput }
+  | { type: "CHARACTER_BOOPED" }
+  | { type: "RESET" };
+
+export function reduceProgress(progress: ProgressV3, event: ProgressEvent): ProgressV3 {
+  if (event.type === "CONTENT_COMPLETED") return applyCompletion(progress, event.input);
+  if (event.type === "CHARACTER_BOOPED") return { ...progress, boops: progress.boops + 1 };
+  return createBlankProgressV3();
+}

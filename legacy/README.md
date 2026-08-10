@@ -1,5 +1,6 @@
 # Legacy static prototype
 
-The pre-Next.js prototype remains in the repository root as `index.html`, `app.js`, `styles.css`, `sw.js` and `manifest.webmanifest` until the Next.js migration passes mobile and offline QA.
+The retired pre-Next.js prototype is preserved in this directory for reference.
+It is not served or built by the active application. Do not add features here.
 
-Do not add features to those files. The active application is `app/`, `components/` and `lib/`.
+The active application is `app/`, `components/`, `lib/` and `public/`.

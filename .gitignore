@@ -8,5 +8,9 @@ work-dev.err.log
 .env.local
 .vercel/
 *.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+debug.log
 
 .vercel
