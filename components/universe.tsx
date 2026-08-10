@@ -40,6 +40,8 @@ export function Universe() {
   const [storyOpen, setStoryOpen] = useState<StoryDefinition | null>(null);
   const [storyNode, setStoryNode] = useState("start");
   const [storyDone, setStoryDone] = useState(false);
+  const [activePanel, setActivePanel] = useState<"home" | "adventures" | "stories" | "album" | "vault" | "world">("home");
+  const [characterMood, setCharacterMood] = useState<"idle" | "look" | "alert" | "tongue" | "sleepy">("idle");
   const [title, subtitle] = useMemo(greeting, []);
 
   useEffect(() => {
@@ -69,6 +71,8 @@ export function Universe() {
     if (!progress) return;
     update({ ...progress, boops: progress.boops + 1 });
     setNotice(["Burnuma mı dokundun?", "Küçük patiler. Büyük planlar.", "Tamam, hazırım!"].sort(() => Math.random() - .5)[0]);
+    setCharacterMood("tongue");
+    window.setTimeout(() => setCharacterMood("idle"), 900);
   }
   function begin(adventure: Adventure) { setActive(adventure); setChoice(null); }
   function resolveChoice(index: number) {
@@ -107,8 +111,10 @@ export function Universe() {
 
     <section className="world" aria-label="Fındık'ın evi">
       <div className="scene-detail sun" aria-hidden>☀</div><div className="scene-detail tram" aria-hidden>▤</div><div className="scene-detail park" aria-hidden>✦</div>
-      <button className="character-placeholder" onClick={boop} aria-label="Fındık'a dokun">
+      <button className={`character-placeholder mood-${characterMood}`} onClick={boop} aria-label="Fındık'a dokun">
         <img src="/assets/character/findik-idle-front-v01.png" alt="" className="character-art" />
+        <span className="character-tongue" aria-hidden="true" />
+        <span className="attention-mark" aria-hidden="true">!</span>
         <span className="asset-note">CANDIDATE V01</span>
       </button>
       <p className="speech" aria-live="polite">{notice}</p>
@@ -117,23 +123,26 @@ export function Universe() {
 
     <section className="progress-card" aria-label="İlerleme"><div><b>{xpInLevel} / 100 XP</b><small>Bir sonraki seviyeye</small></div><div className="meter"><i style={{ width: `${xpInLevel}%` }} /></div></section>
 
-    <section id="adventures"><SectionHead label="BUGÜN" title="Maceraya çık" aside={`${progress.completed.length}/5 tamamlandı`} />
+    <nav className="universe-nav" aria-label="Fındık dünyası bölümleri">{([['home','Ev','⌂'],['adventures','Macera','✦'],['stories','Hikâye','◌'],['album','Albüm','▣'],['vault','Kasa','◇'],['world','Harita','⌖']] as const).map(([id,label,icon]) => <button key={id} className={activePanel === id ? "active" : ""} onClick={() => setActivePanel(id)}><span>{icon}</span>{label}</button>)}</nav>
+
+    {activePanel === "adventures" && <section className="screen-panel" id="adventures"><SectionHead label="BUGÜN" title="Maceraya çık" aside={`${progress.completed.length}/5 tamamlandı`} />
       <div className="adventure-rail">{adventures.map((adventure) => <button key={adventure.id} onClick={() => begin(adventure)} className={`adventure-card ${adventure.tone} ${progress.completed.includes(adventure.id) ? "done" : ""}`}><span className="eyebrow">{adventure.place}</span><strong>{adventure.title}</strong><p>{adventure.hook}</p>{progress.completed.includes(adventure.id) && <em>✓ Tamamlandı</em>}</button>)}</div>
-    </section>
+    </section>}
 
-    <section id="album"><SectionHead label="HATIRALAR" title="Fındık'ın Albümü" />
+    {activePanel === "album" && <section className="screen-panel" id="album"><SectionHead label="HATIRALAR" title="Fındık'ın Albümü" />
       <div className="album-grid">{progress.memories.length ? progress.memories.map((memory) => { const adventure = adventures.find((item) => item.id === memory.id); return <article key={memory.id} className="memory"><div className={`memory-art ${adventure?.tone || "park"}`}>F</div><b>{adventure?.title || "Fındık anısı"}</b><small>{new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long" }).format(new Date(memory.completedAt))} · {memory.caption}</small></article>; }) : <p className="empty">İlk maceranı tamamladığında hatıran burada yaşayacak.</p>}</div>
-    </section>
+    </section>}
 
-    <section id="vault"><SectionHead label="KOLEKSİYON" title="Sticker Kasası" aside={`${progress.completed.length}/5 açık`} />
+    {activePanel === "vault" && <section className="screen-panel" id="vault"><SectionHead label="KOLEKSİYON" title="Sticker Kasası" aside={`${progress.completed.length}/5 açık`} /><figure style={{ margin: "0 0 8px", padding: "6px", borderRadius: "18px", background: "#fffaf4" }}><img src="/assets/stickers/findik-adventure-sticker-sheet-v01.png" alt="Fındık'ın tramvay, bisiklet, kafe, park, gece, balon ve tepki stickerları" style={{ display: "block", width: "100%", maxHeight: "180px", objectFit: "contain", borderRadius: "14px" }} /><figcaption style={{ marginTop: "4px", textAlign: "center", fontSize: "10px", color: "#7e6d63", fontWeight: 800 }}>Macera ve deneyim stickerları</figcaption></figure>
       <div className="sticker-grid">{adventures.map((adventure) => <div key={adventure.id} className={`sticker ${progress.completed.includes(adventure.id) ? "" : "locked"}`}><span>{progress.completed.includes(adventure.id) ? adventure.reward.stickerText : "Kilitli"}</span><small>{adventure.place}</small></div>)}</div>
-    </section>
+    </section>}
 
-    <section id="world"><SectionHead label="DÜNYA" title="Açılacak yerler" />
+    {activePanel === "world" && <section className="screen-panel" id="world"><SectionHead label="DÜNYA" title="Açılacak yerler" />
       <div className="map-grid">{["Ev", "Tramvay", "Bisiklet", "Kafe", "Park", "Gece Bahçesi"].map((place, index) => <div key={place} className={index <= progress.completed.length ? "map-place" : "map-place locked"}>{place}</div>)}</div>
-    </section>
+    </section>}
 
-    <section id="stories"><SectionHead label="HİKÂYELER" title="Bir hikâyeye uğra" /><div className="adventure-rail">{stories.map((story) => <button key={story.id} className="adventure-card park" onClick={() => beginStory(story)}><span className="eyebrow">HİKÂYE</span><strong>{story.title}</strong><p>{story.reward.memoryCaption}</p></button>)}</div></section>
+    {activePanel === "stories" && <section className="screen-panel" id="stories"><SectionHead label="HİKÂYELER" title="Bir hikâyeye uğra" /><div className="adventure-rail">{stories.map((story) => <button key={story.id} className="adventure-card park" onClick={() => beginStory(story)}><span className="eyebrow">HİKÂYE</span><strong>{story.title}</strong><p>{story.reward.memoryCaption}</p></button>)}</div></section>}
+    {activePanel === "home" && <section className="home-infographic screen-panel"><div className="home-stat"><b>{progress.completed.length}/5</b><span>macera tamamlandı</span></div><div className="home-stat"><b>{progress.memories.length}</b><span>anı albümde</span></div><div className="home-stat"><b>{progress.boops}</b><span>burun dokunuşu</span></div><button className="secondary" onClick={() => setCharacterMood("alert")}>Fındık dikkat kesilsin</button><button className="secondary" onClick={() => setCharacterMood("look")}>Fındık etrafa baksın</button></section>}
     <div className="actions"><button className="secondary" onClick={() => setStudioOpen(true)}>Fındık bugün ne yapsın?</button><button className="secondary" onClick={() => setSettingsOpen(true)}>Ayarlar ve beta notu</button></div>
 
     {active && <Dialog title={active.title} onClose={() => setActive(null)}><span className="eyebrow">{active.place}</span><p>{active.story}</p><h2>{active.task}</h2><div className="choices">{active.choices.map((label, index) => <button key={label} className={choice === index ? (index === active.correctChoice ? "correct" : "wrong") : ""} disabled={choice !== null && choice === active.correctChoice} onClick={() => resolveChoice(index)}>{label}</button>)}</div>{choice !== null && <p className={choice === active.correctChoice ? "success" : "try-again"}>{choice === active.correctChoice ? `Görev tamam! +${active.reward.xp} XP ve “${active.reward.stickerText}” açıldı.` : "Bu koltuk Fındık için biraz fazla hareketli. Bir daha dene."}</p>}<button className="primary" onClick={() => setActive(null)}>{choice === active.correctChoice ? "Anıya dön" : "Maceraya dön"}</button></Dialog>}
