@@ -6,12 +6,12 @@ The goal is to turn a beloved sticker character into a tiny persistent universe:
 
 ## Current stage
 
-The repository contains the V1 interaction prototype. The active delivery milestone is **First Real Visit**:
+The active application is a Next.js App Router / React 19 local-first PWA. The current delivery milestone is the first Story → Adventure → Minigame vertical slice:
 
-1. Publish and verify the iPhone PWA.
-2. Replace the temporary emoji representation with canonical Fındık art.
-3. Turn Tramvay Macerası into a short playable interaction.
-4. Prove the loop with a memory, XP and sticker reward.
+1. Preserve the existing five-adventure beta loop.
+2. Run the Kayıp Kırmızı Balon Story through the shared progress/reward contract.
+3. Keep Supabase optional and device-local progress functional.
+4. Verify the PWA and mobile quality gates before calling it production-ready.
 
 ## Documentation
 
@@ -31,4 +31,4 @@ The [docs/](./docs/README.md) folder is the project’s source of truth:
 
 ## Deployment
 
-Static and Vercel-ready. No build step is required for the current prototype. Production readiness requires the quality gates in `docs/TECHNICAL_FOUNDATION.md`.
+Next.js/Vercel-ready. Production readiness requires the quality gates in `docs/TECHNICAL_FOUNDATION.md`; a successful build alone is not physical iPhone or deployment evidence.

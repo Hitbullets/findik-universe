@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.npm-cache/
+.npm-cache
+.work-*.log
+work-dev.out.log
+work-dev.err.log
+.env.local
+.vercel/
+*.tsbuildinfo
