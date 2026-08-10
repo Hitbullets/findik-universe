@@ -80,10 +80,11 @@ export function Universe() {
     <section className="world" aria-label="Fındık'ın evi">
       <div className="scene-detail sun" aria-hidden>☀</div><div className="scene-detail tram" aria-hidden>▤</div><div className="scene-detail park" aria-hidden>✦</div>
       <button className="character-placeholder" onClick={boop} aria-label="Fındık'a dokun">
-        <span className="asset-note">ASSET BEKLİYOR</span><span className="leaf">⌁</span><span className="findik-mark">F</span><span className="overalls" />
+        <img src="/assets/character/findik-idle-front-v01.png" alt="" className="character-art" />
+        <span className="asset-note">CANDIDATE V01</span>
       </button>
       <p className="speech" aria-live="polite">{notice}</p>
-      <p className="asset-disclosure">Geçici karakter işareti · Orijinal sticker onayı bekleniyor</p>
+      <p className="asset-disclosure">Fındık idle asset · Onay öncesi candidate v01</p>
     </section>
 
     <section className="progress-card" aria-label="İlerleme"><div><b>{xpInLevel} / 100 XP</b><small>Bir sonraki seviyeye</small></div><div className="meter"><i style={{ width: `${xpInLevel}%` }} /></div></section>

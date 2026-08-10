@@ -25,6 +25,10 @@ Every production asset needs:
 
 Keep the record in an asset manifest once real production art begins.
 
+## Current reference decision
+
+The original user-supplied sticker capture is the visual canon reference for Fındık's face, coat, long dachshund ears, oversized dark eyes, blue denim overalls and two green leaf accessories. The editorial boards are mood and pose references only. Their written biographical details, especially exact birth dates, must never enter product copy unless independently confirmed.
+
 ## Approval checklist
 - Brown dachshund proportions are clear.
 - Blue overalls and leaf motif remain recognisable.
