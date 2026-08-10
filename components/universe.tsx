@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { adventures, getAdventure } from "@/lib/adventures";
 import { draftAdventure } from "@/lib/adventure-studio";
 import { completeAdventure, levelFor, loadProgress, persistProgress } from "@/lib/progress";
@@ -10,6 +10,8 @@ import type { Adventure, AdventureDraft, Progress } from "@/lib/types";
 import { stories } from "@/lib/content/stories";
 import { reduceProgress } from "@/lib/progress-reducer";
 import { loadProgressV3, persistProgressV3 } from "@/lib/progress";
+import { migrateV2ToV3 } from "@/lib/progress-schema";
+import { applyCompletion } from "@/lib/progress-reducer";
 import type { StoryDefinition } from "@/lib/content/types";
 
 function greeting() {
@@ -22,6 +24,7 @@ function greeting() {
 
 export function Universe() {
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [progressV3, setProgressV3] = useState(() => loadProgressV3());
   const [active, setActive] = useState<Adventure | null>(null);
   const [choice, setChoice] = useState<number | null>(null);
   const [notice, setNotice] = useState("Sonunda geldin. Bugün nereye gidiyoruz?");
@@ -46,6 +49,10 @@ export function Universe() {
   }, []);
 
   function update(next: Progress) { setProgress(next); persistProgress(next); }
+  function legacyView(next: typeof progressV3): Progress {
+    const allowed = new Set(["tram", "bike", "cafe", "park", "night"]);
+    return { version: 2, xp: next.xp, boops: next.boops, completed: Object.values(next.completions).map((entry) => entry.content.id).filter((id): id is Progress["completed"][number] => allowed.has(id)), memories: next.memories.filter((memory) => allowed.has(memory.id)) as Progress["memories"], wardrobe: next.wardrobe.unlocked };
+  }
   function beginStory(story: StoryDefinition) { setStoryOpen(story); setStoryNode(story.startNodeId); setStoryDone(false); }
   function chooseStory(next: string) {
     if (!storyOpen) return;
@@ -53,7 +60,7 @@ export function Universe() {
     const node = storyOpen.nodes.find((item) => item.id === next);
     if (node?.ending && !storyDone) {
       const v3 = reduceProgress(loadProgressV3(), { type: "CONTENT_COMPLETED", input: { content: { type: "story", id: storyOpen.id, version: storyOpen.version }, reward: storyOpen.reward } });
-      persistProgressV3(v3);
+      setProgressV3(v3); persistProgressV3(v3); setProgress(legacyView(v3));
       setStoryDone(true);
       setNotice(storyOpen.reward.memoryCaption || "Yeni bir anı albüme eklendi.");
     }
@@ -70,6 +77,8 @@ export function Universe() {
     if (index === active.correctChoice) {
       const next = completeAdventure(progress, active);
       update(next);
+      const nextV3 = applyCompletion(progressV3, { content: { type: "adventure", id: active.id, version: 1 }, reward: { id: `legacy-${active.id}`, xp: active.reward.xp, stickerText: active.reward.stickerText, memoryId: active.id, memoryCaption: active.reward.memory } });
+      setProgressV3(nextV3); persistProgressV3(nextV3);
       setNotice(active.reward.memory);
     }
   }
@@ -84,8 +93,8 @@ export function Universe() {
     if (supabase && account) await supabase.from("feedback").insert({ body: feedback.trim(), app_version: "0.2.0" });
     setFeedback(""); setFeedbackNotice("Teşekkürler. Fındık notunu okudu.");
   }
-  async function backup() { if (!progress) return; const result = await backupProgress(progress); setAuthNotice(result.error || "Bu cihazdaki ilerleme hesabına yedeklendi."); }
-  async function restore() { if (!window.confirm("Buluttaki ilerleme bu cihazdaki mevcut ilerlemenin üzerine yazılacak. Devam edilsin mi?")) return; const result = await restoreProgress(); if (result.progress) { update(result.progress); setAuthNotice("Hesabındaki ilerleme bu cihaza getirildi."); } else setAuthNotice(result.error || "Yedek bulunamadı."); }
+  async function backup() { const result = await backupProgress(progressV3); setAuthNotice(result.error || "Bu cihazdaki ilerleme hesabına yedeklendi."); }
+  async function restore() { if (!window.confirm("Buluttaki ilerleme bu cihazdaki mevcut ilerlemenin üzerine yazılacak. Devam edilsin mi?")) return; const result = await restoreProgress(); if (result.progress) { setProgressV3(result.progress); persistProgressV3(result.progress); setProgress(legacyView(result.progress)); setAuthNotice("Hesabındaki ilerleme bu cihaza getirildi."); } else setAuthNotice(result.error || "Yedek bulunamadı."); }
 
   if (!progress) return <main className="loading">Fındık dünyasını hazırlıyor…</main>;
   const xpInLevel = progress.xp % 100;
@@ -113,7 +122,7 @@ export function Universe() {
     </section>
 
     <section id="album"><SectionHead label="HATIRALAR" title="Fındık'ın Albümü" />
-      <div className="album-grid">{progress.memories.length ? progress.memories.map((memory) => <article key={memory.id} className="memory"><div className={`memory-art ${getAdventure(memory.id).tone}`}>F</div><b>{getAdventure(memory.id).title}</b><small>{new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long" }).format(new Date(memory.completedAt))} · {memory.caption}</small></article>) : <p className="empty">İlk maceranı tamamladığında hatıran burada yaşayacak.</p>}</div>
+      <div className="album-grid">{progress.memories.length ? progress.memories.map((memory) => { const adventure = adventures.find((item) => item.id === memory.id); return <article key={memory.id} className="memory"><div className={`memory-art ${adventure?.tone || "park"}`}>F</div><b>{adventure?.title || "Fındık anısı"}</b><small>{new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long" }).format(new Date(memory.completedAt))} · {memory.caption}</small></article>; }) : <p className="empty">İlk maceranı tamamladığında hatıran burada yaşayacak.</p>}</div>
     </section>
 
     <section id="vault"><SectionHead label="KOLEKSİYON" title="Sticker Kasası" aside={`${progress.completed.length}/5 açık`} />
@@ -137,4 +146,23 @@ export function Universe() {
 }
 
 function SectionHead({ label, title, aside }: { label: string; title: string; aside?: string }) { return <div className="section-head"><div><span className="eyebrow">{label}</span><h2>{title}</h2></div>{aside && <small>{aside}</small>}</div>; }
-function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) { return <div className="dialog-backdrop" role="presentation" onMouseDown={onClose}><section className="dialog" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}><button className="close" onClick={onClose} aria-label="Kapat">×</button>{children}</section></div>; }
+function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    restoreRef.current = document.activeElement as HTMLElement;
+    dialogRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>("button, input, textarea, select, [href], [tabindex]:not([tabindex='-1'])")).filter((element) => !element.hasAttribute("disabled"));
+      if (!focusable.length) return;
+      const first = focusable[0]; const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { document.removeEventListener("keydown", onKeyDown); restoreRef.current?.focus(); };
+  }, [onClose]);
+  return <div className="dialog-backdrop" role="presentation" onMouseDown={onClose}><section ref={dialogRef} className="dialog" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onMouseDown={(event) => event.stopPropagation()}><button className="close" onClick={onClose} aria-label="Kapat">×</button>{children}</section></div>;
+}

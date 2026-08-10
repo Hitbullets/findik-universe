@@ -13,7 +13,7 @@ export type Adventure = {
   tone: string;
 };
 
-export type Memory = { id: AdventureId; completedAt: string; caption: string };
+export type Memory = { id: string; completedAt: string; caption: string };
 
 export type Progress = {
   version: 2;
