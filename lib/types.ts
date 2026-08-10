@@ -25,3 +25,29 @@ export type Progress = {
 };
 
 export type AdventureDraft = { title: string; scenes: string[]; interaction: string; reward: string };
+
+export type ContentType = "story" | "adventure" | "minigame";
+export type ContentRef = { type: ContentType; id: string; version?: number };
+export type CompletionRecord = { key: string; content: ContentRef; completedAt: string; score?: number };
+export type RewardBundle = {
+  id: string;
+  xp: number;
+  stickerId?: string;
+  stickerText?: string;
+  memoryId?: string;
+  memoryCaption?: string;
+  achievementId?: string;
+  wardrobeItemId?: string;
+  passportStampId?: string;
+};
+export type ProgressV3 = {
+  version: 3;
+  xp: number;
+  boops: number;
+  completions: Record<string, CompletionRecord>;
+  memories: Memory[];
+  unlockedRewards: string[];
+  achievements: Record<string, { unlockedAt: string }>;
+  wardrobe: { unlocked: string[]; equipped: string[] };
+  passport: { visitedPlaceIds: string[]; stamps: string[] };
+};

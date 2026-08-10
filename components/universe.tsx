@@ -7,6 +7,10 @@ import { completeAdventure, levelFor, loadProgress, persistProgress } from "@/li
 import { backupProgress, restoreProgress } from "@/lib/cloud";
 import { sendMagicLink, supabase } from "@/lib/supabase";
 import type { Adventure, AdventureDraft, Progress } from "@/lib/types";
+import { stories } from "@/lib/content/stories";
+import { reduceProgress } from "@/lib/progress-reducer";
+import { loadProgressV3, persistProgressV3 } from "@/lib/progress";
+import type { StoryDefinition } from "@/lib/content/types";
 
 function greeting() {
   const hour = new Date().getHours();
@@ -30,6 +34,9 @@ export function Universe() {
   const [feedback, setFeedback] = useState("");
   const [feedbackNotice, setFeedbackNotice] = useState("");
   const [account, setAccount] = useState<string | null>(null);
+  const [storyOpen, setStoryOpen] = useState<StoryDefinition | null>(null);
+  const [storyNode, setStoryNode] = useState("start");
+  const [storyDone, setStoryDone] = useState(false);
   const [title, subtitle] = useMemo(greeting, []);
 
   useEffect(() => {
@@ -39,6 +46,18 @@ export function Universe() {
   }, []);
 
   function update(next: Progress) { setProgress(next); persistProgress(next); }
+  function beginStory(story: StoryDefinition) { setStoryOpen(story); setStoryNode(story.startNodeId); setStoryDone(false); }
+  function chooseStory(next: string) {
+    if (!storyOpen) return;
+    setStoryNode(next);
+    const node = storyOpen.nodes.find((item) => item.id === next);
+    if (node?.ending && !storyDone) {
+      const v3 = reduceProgress(loadProgressV3(), { type: "CONTENT_COMPLETED", input: { content: { type: "story", id: storyOpen.id, version: storyOpen.version }, reward: storyOpen.reward } });
+      persistProgressV3(v3);
+      setStoryDone(true);
+      setNotice(storyOpen.reward.memoryCaption || "Yeni bir anı albüme eklendi.");
+    }
+  }
   function boop() {
     if (!progress) return;
     update({ ...progress, boops: progress.boops + 1 });
@@ -66,7 +85,7 @@ export function Universe() {
     setFeedback(""); setFeedbackNotice("Teşekkürler. Fındık notunu okudu.");
   }
   async function backup() { if (!progress) return; const result = await backupProgress(progress); setAuthNotice(result.error || "Bu cihazdaki ilerleme hesabına yedeklendi."); }
-  async function restore() { const result = await restoreProgress(); if (result.progress) { update(result.progress); setAuthNotice("Hesabındaki ilerleme bu cihaza getirildi."); } else setAuthNotice(result.error || "Yedek bulunamadı."); }
+  async function restore() { if (!window.confirm("Buluttaki ilerleme bu cihazdaki mevcut ilerlemenin üzerine yazılacak. Devam edilsin mi?")) return; const result = await restoreProgress(); if (result.progress) { update(result.progress); setAuthNotice("Hesabındaki ilerleme bu cihaza getirildi."); } else setAuthNotice(result.error || "Yedek bulunamadı."); }
 
   if (!progress) return <main className="loading">Fındık dünyasını hazırlıyor…</main>;
   const xpInLevel = progress.xp % 100;
@@ -105,6 +124,7 @@ export function Universe() {
       <div className="map-grid">{["Ev", "Tramvay", "Bisiklet", "Kafe", "Park", "Gece Bahçesi"].map((place, index) => <div key={place} className={index <= progress.completed.length ? "map-place" : "map-place locked"}>{place}</div>)}</div>
     </section>
 
+    <section id="stories"><SectionHead label="HİKÂYELER" title="Bir hikâyeye uğra" /><div className="adventure-rail">{stories.map((story) => <button key={story.id} className="adventure-card park" onClick={() => beginStory(story)}><span className="eyebrow">HİKÂYE</span><strong>{story.title}</strong><p>{story.reward.memoryCaption}</p></button>)}</div></section>
     <div className="actions"><button className="secondary" onClick={() => setStudioOpen(true)}>Fındık bugün ne yapsın?</button><button className="secondary" onClick={() => setSettingsOpen(true)}>Ayarlar ve beta notu</button></div>
 
     {active && <Dialog title={active.title} onClose={() => setActive(null)}><span className="eyebrow">{active.place}</span><p>{active.story}</p><h2>{active.task}</h2><div className="choices">{active.choices.map((label, index) => <button key={label} className={choice === index ? (index === active.correctChoice ? "correct" : "wrong") : ""} disabled={choice !== null && choice === active.correctChoice} onClick={() => resolveChoice(index)}>{label}</button>)}</div>{choice !== null && <p className={choice === active.correctChoice ? "success" : "try-again"}>{choice === active.correctChoice ? `Görev tamam! +${active.reward.xp} XP ve “${active.reward.stickerText}” açıldı.` : "Bu koltuk Fındık için biraz fazla hareketli. Bir daha dene."}</p>}<button className="primary" onClick={() => setActive(null)}>{choice === active.correctChoice ? "Anıya dön" : "Maceraya dön"}</button></Dialog>}
@@ -112,6 +132,7 @@ export function Universe() {
     {settingsOpen && <Dialog title="Profil ve ayarlar" onClose={() => setSettingsOpen(false)}><p>{account ? `${account} ile giriş yaptın.` : "İlerleme şu an cihazında güvenle saklanıyor."}</p>{account ? <div className="account-actions"><button className="primary" onClick={backup}>Bu cihazdaki ilerlemeyi yedekle</button><button className="secondary" onClick={restore}>Hesaptaki ilerlemeyi getir</button></div> : <form onSubmit={signIn} className="form"><label>E-posta ile devam et<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="sen@ornek.com" required /></label><button className="primary" type="submit">Sihirli bağlantı gönder</button></form>}<p className="fine-print">Yedekleme açık onayınla çalışır. Reklam, streak veya satış yok.</p>{authNotice && <p className="notice">{authNotice}</p>}<form onSubmit={submitFeedback} className="form"><label>Beta notun<textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Fındık'ın hangi anı daha tatlı olsun?" maxLength={500} /></label><button className="secondary" type="submit">Notu gönder</button></form>{feedbackNotice && <p className="notice">{feedbackNotice}</p>}<button className="text-button" onClick={() => update({ version: 2, xp: 0, completed: [], boops: 0, memories: [], wardrobe: [] })}>Bu cihazdaki ilerlemeyi sıfırla</button></Dialog>}
 
     {studioOpen && <Dialog title="Adventure Studio · taslak" onClose={() => setStudioOpen(false)}><p>Fikirler taslaktır; Fındık'ın kanonik maceralarının yerine geçmez.</p><form onSubmit={(event) => { event.preventDefault(); setDraft(draftAdventure(idea)); }} className="form"><label>Fındık bugün ne yapsın?<input value={idea} onChange={(event) => setIdea(event.target.value)} placeholder="ör. sahilde uçurtma uçursun" /></label><button className="primary" type="submit">Taslak oluştur</button></form>{draft ? <article className="draft"><span className="eyebrow">ONAY BEKLİYOR</span><h2>{draft.title}</h2><ol>{draft.scenes.map((scene) => <li key={scene}>{scene}</li>)}</ol><p><b>Etkileşim:</b> {draft.interaction}</p><p><b>Ödül:</b> {draft.reward}</p><button className="secondary" onClick={() => setDraft(null)}>Taslağı sil</button></article> : idea && <p className="try-again">Bu fikir kurallara uymuyor ya da biraz daha ayrıntı istiyor.</p>}</Dialog>}
+    {storyOpen && <Dialog title={storyOpen.title} onClose={() => setStoryOpen(null)}><p>{storyOpen.nodes.find((node) => node.id === storyNode)?.text}</p>{!storyDone && storyOpen.nodes.find((node) => node.id === storyNode)?.choices?.map((item) => <button className="secondary" key={item.next} onClick={() => chooseStory(item.next)}>{item.label}</button>)}{storyDone && <p className="success">Hikâye tamamlandı. Anı albüme eklendi ve +{storyOpen.reward.xp} XP kazanıldı.</p>}<button className="primary" onClick={() => setStoryOpen(null)}>Dünyaya dön</button></Dialog>}
   </main>;
 }
 

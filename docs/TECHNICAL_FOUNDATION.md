@@ -1,13 +1,12 @@
 # Technical Foundation
 
 ## Current architecture
-V1 is a no-build static PWA:
-- `index.html` provides the single-page shell.
-- `app.js` contains adventure data, rendering and local persistence.
-- `styles.css` contains the mobile visual system.
-- `manifest.webmanifest` declares installability.
-- `sw.js` provides offline caching.
-- `vercel.json` configures static hosting headers.
+The active application is a Next.js App Router / React 19 client experience:
+- `app/page.tsx` mounts the Universe experience.
+- `components/universe.tsx` contains the current beta shell and is being decomposed incrementally.
+- `lib/` contains content, progress, reward and optional Supabase integration.
+- `public/manifest.webmanifest` and `public/sw.js` provide the active PWA shell.
+- Root `index.html`, `app.js`, `styles.css`, `sw.js` and `manifest.webmanifest` are legacy migration files; do not add features there.
 
 This is appropriate for the prototype but not yet production-complete.
 
