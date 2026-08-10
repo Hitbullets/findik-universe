@@ -8,3 +8,5 @@ work-dev.err.log
 .env.local
 .vercel/
 *.tsbuildinfo
+
+.vercel

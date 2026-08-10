@@ -23,7 +23,9 @@ function greeting() {
 }
 
 export function Universe() {
-  const [progress, setProgress] = useState<Progress | null>(null);
+  // Keep a safe local-first state available on the first render so a delayed
+  // hydration/service-worker/auth step cannot strand the app on a white screen.
+  const [progress, setProgress] = useState<Progress>(() => loadProgress());
   const [progressV3, setProgressV3] = useState(() => loadProgressV3());
   const [active, setActive] = useState<Adventure | null>(null);
   const [choice, setChoice] = useState<number | null>(null);
@@ -45,7 +47,6 @@ export function Universe() {
   const [title, subtitle] = useMemo(greeting, []);
 
   useEffect(() => {
-    setProgress(loadProgress());
     navigator.serviceWorker?.register("/sw.js");
     supabase?.auth.getUser().then(({ data }) => setAccount(data.user?.email ?? null));
   }, []);
