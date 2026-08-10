@@ -1,27 +1,126 @@
-import type { AdventureId, Memory, Progress, ProgressV3, CompletionRecord } from "./types";
-import { blankProgressV3, createBlankProgressV3 } from "./progress-reducer";
+import type {
+  CompletionRecord,
+  ContentRef,
+  ContentType,
+  Memory,
+  Progress,
+  ProgressV3,
+} from "./types";
+import { completionKey, createBlankProgressV3 } from "./progress-reducer";
+
+const contentTypes = new Set<ContentType>(["story", "adventure", "minigame"]);
+const legacyAdventureIds = new Set(["tram", "bike", "cafe", "park", "night"]);
+const epoch = new Date(0).toISOString();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function finiteNonNegativeInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : null;
+}
+
+function strings(value: unknown, limit: number): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string").map((item) => item.slice(0, 120)).slice(0, limit);
+}
+
+function safeDate(value: unknown): string {
+  if (typeof value !== "string" || !Number.isFinite(Date.parse(value))) return epoch;
+  return new Date(value).toISOString();
+}
+
+function memory(value: unknown): Memory | null {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.caption !== "string") return null;
+  return { id: value.id.slice(0, 120), completedAt: safeDate(value.completedAt), caption: value.caption.slice(0, 280) };
+}
+
+function contentRef(value: unknown): ContentRef | null {
+  if (!isRecord(value) || typeof value.type !== "string" || !contentTypes.has(value.type as ContentType) || typeof value.id !== "string" || !value.id) return null;
+  const version = value.version === undefined ? undefined : finiteNonNegativeInteger(value.version);
+  if (version === null || version === 0) return null;
+  return { type: value.type as ContentType, id: value.id.slice(0, 120), ...(version === undefined ? {} : { version }) };
+}
+
+function completion(value: unknown): CompletionRecord | null {
+  if (!isRecord(value)) return null;
+  const content = contentRef(value.content);
+  if (!content) return null;
+  const key = completionKey(content);
+  const score = value.score === undefined ? undefined : finiteNonNegativeInteger(value.score);
+  if (score === null) return null;
+  return { key, content, completedAt: safeDate(value.completedAt), ...(score === undefined ? {} : { score }) };
+}
+
+function normalizeV2(value: Record<string, unknown>): ProgressV3 | null {
+  const xp = finiteNonNegativeInteger(value.xp);
+  const boops = finiteNonNegativeInteger(value.boops);
+  if (xp === null || boops === null || !Array.isArray(value.completed) || !Array.isArray(value.memories) || !Array.isArray(value.wardrobe)) return null;
+  const completed = strings(value.completed, 100).filter((id) => legacyAdventureIds.has(id));
+  const memories = value.memories.map(memory).filter((item): item is Memory => item !== null).slice(0, 500);
+  const progress: Progress = {
+    version: 2,
+    xp,
+    boops,
+    completed: completed as Progress["completed"],
+    memories,
+    wardrobe: strings(value.wardrobe, 100),
+  };
+  return migrateV2ToV3(progress);
+}
+
 export function migrateV2ToV3(value: Progress): ProgressV3 {
-  const completions = Object.fromEntries(value.completed.map((id) => [`adventure:${id}`, { key: `adventure:${id}`, content: { type: "adventure" as const, id }, completedAt: value.memories.find((m) => m.id === id)?.completedAt || new Date(0).toISOString() }]));
-  return { ...createBlankProgressV3(), xp: Math.max(0, Math.floor(value.xp)), boops: Math.max(0, Math.floor(value.boops)), completions, memories: value.memories.map((m) => ({ id: String(m.id), completedAt: m.completedAt, caption: String(m.caption).slice(0, 280) })).slice(0, 500), wardrobe: { unlocked: value.wardrobe.filter((id) => typeof id === "string").slice(0, 100), equipped: [] } };
+  const memories = value.memories.map((item) => memory(item)).filter((item): item is Memory => item !== null).slice(0, 500);
+  const completions = Object.fromEntries(value.completed.map((id) => {
+    const content = { type: "adventure" as const, id, version: 1 };
+    const key = completionKey(content);
+    return [key, { key, content, completedAt: memories.find((item) => item.id === id)?.completedAt ?? epoch }];
+  }));
+  return {
+    ...createBlankProgressV3(),
+    xp: finiteNonNegativeInteger(value.xp) ?? 0,
+    boops: finiteNonNegativeInteger(value.boops) ?? 0,
+    completions,
+    memories,
+    wardrobe: { unlocked: strings(value.wardrobe, 100), equipped: [] },
+  };
 }
+
+export function progressVersion(value: unknown): 2 | 3 | null {
+  if (!isRecord(value)) return null;
+  return value.version === 2 || value.version === 3 ? value.version : null;
+}
+
 export function normalizeProgress(value: unknown): ProgressV3 {
-  if (value && typeof value === "object" && (value as { version?: number }).version === 3) {
-    const candidate = value as Partial<ProgressV3>;
-    if (!Number.isFinite(candidate.xp) || !Number.isFinite(candidate.boops) || candidate.xp! < 0 || candidate.boops! < 0) return blankProgressV3;
-    return {
-      ...blankProgressV3,
-      ...candidate,
-      xp: Math.floor(candidate.xp!),
-      boops: Math.floor(candidate.boops!),
-      completions: candidate.completions && typeof candidate.completions === "object" ? Object.fromEntries(Object.entries(candidate.completions).filter(([, record]) => record && typeof record === "object" && typeof (record as CompletionRecord).key === "string" && (record as CompletionRecord).content && typeof (record as CompletionRecord).content.id === "string").slice(0, 500)) as ProgressV3["completions"] : {},
-      memories: Array.isArray(candidate.memories) ? candidate.memories.filter((m): m is Memory => !!m && typeof m === "object" && typeof m.id === "string" && typeof m.completedAt === "string" && typeof m.caption === "string").map((m) => ({ id: m.id.slice(0, 120), completedAt: m.completedAt, caption: m.caption.slice(0, 280) })).slice(0, 500) : [],
-      unlockedRewards: Array.isArray(candidate.unlockedRewards) ? candidate.unlockedRewards.filter((id): id is string => typeof id === "string").slice(0, 500) : [],
-      achievements: candidate.achievements && typeof candidate.achievements === "object" ? candidate.achievements : {},
-      wardrobe: candidate.wardrobe && typeof candidate.wardrobe === "object" ? { unlocked: Array.isArray(candidate.wardrobe.unlocked) ? candidate.wardrobe.unlocked.filter((id): id is string => typeof id === "string") : [], equipped: Array.isArray(candidate.wardrobe.equipped) ? candidate.wardrobe.equipped.filter((id): id is string => typeof id === "string") : [] } : { unlocked: [], equipped: [] },
-      passport: candidate.passport && typeof candidate.passport === "object" ? { visitedPlaceIds: Array.isArray(candidate.passport.visitedPlaceIds) ? candidate.passport.visitedPlaceIds.filter((id): id is string => typeof id === "string") : [], stamps: Array.isArray(candidate.passport.stamps) ? candidate.passport.stamps.filter((id): id is string => typeof id === "string") : [] } : { visitedPlaceIds: [], stamps: [] },
-    };
-  }
-  if (value && typeof value === "object" && (value as { version?: number }).version === 2) return migrateV2ToV3(value as Progress);
-  return blankProgressV3;
+  if (!isRecord(value)) return createBlankProgressV3();
+  if (value.version === 2) return normalizeV2(value) ?? createBlankProgressV3();
+  if (value.version !== 3) return createBlankProgressV3();
+
+  const xp = finiteNonNegativeInteger(value.xp);
+  const boops = finiteNonNegativeInteger(value.boops);
+  if (xp === null || boops === null) return createBlankProgressV3();
+
+  const completionEntries = isRecord(value.completions)
+    ? Object.values(value.completions).map(completion).filter((item): item is CompletionRecord => item !== null).slice(0, 500)
+    : [];
+  const memories = Array.isArray(value.memories) ? value.memories.map(memory).filter((item): item is Memory => item !== null).slice(0, 500) : [];
+  const achievements = isRecord(value.achievements)
+    ? Object.fromEntries(Object.entries(value.achievements).flatMap(([id, item]) => isRecord(item) ? [[id.slice(0, 120), { unlockedAt: safeDate(item.unlockedAt) }]] : []).slice(0, 500))
+    : {};
+  const wardrobe = isRecord(value.wardrobe) ? value.wardrobe : {};
+  const passport = isRecord(value.passport) ? value.passport : {};
+
+  return {
+    version: 3,
+    xp,
+    boops,
+    completions: Object.fromEntries(completionEntries.map((item) => [item.key, item])),
+    memories,
+    unlockedRewards: strings(value.unlockedRewards, 500),
+    achievements,
+    wardrobe: { unlocked: strings(wardrobe.unlocked, 100), equipped: strings(wardrobe.equipped, 100) },
+    passport: { visitedPlaceIds: strings(passport.visitedPlaceIds, 500), stamps: strings(passport.stamps, 500) },
+  };
 }
-export const legacyAdventureIds: AdventureId[] = ["tram", "bike", "cafe", "park", "night"];

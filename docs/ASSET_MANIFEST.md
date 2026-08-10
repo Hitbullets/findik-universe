@@ -11,3 +11,10 @@
 | `findik-adventure-sticker-sheet-v01.png` | candidate sticker sheet | Generated from candidate character asset, 2026-08-10 | awaiting product approval | Tramvay, Bisiklet, Kafe, Park, Gece, Kırmızı Balon and reaction sticker views; no text, no chat UI |
 | `app-icon-v0` | temporary | Handmade abstract F mark | not character art | Replace after canonical icon approval |
 | `character-placeholder` | temporary | CSS illustration | not character art | Remains until the first clean production asset is approved |
+
+## Teslim onay kapısı
+
+- Candidate karakter ve sticker görselleri sahip onayı verilmiş canonical asset sayılmaz.
+- Raster 180/192/512/maskable ikon türevlerinin üretilmesi görsel onayı yerine geçmez.
+- Onay kaydında onaylayan kişi, tarih, dosya hash'i ve kullanım kapsamı bulunmalıdır.
+- Bu kayıt tamamlanana kadar release durumu **Hazır Değil** kalır.
